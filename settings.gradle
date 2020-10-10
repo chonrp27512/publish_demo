@@ -1,0 +1,3 @@
+include ':putil'
+include ':app'
+rootProject.name = "publish_demo"
