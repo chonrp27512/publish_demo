@@ -1,3 +1,4 @@
-include ':putil'
+include ':jcenterlibrary'
+include ':jitpackutil'
 include ':app'
 rootProject.name = "publish_demo"
