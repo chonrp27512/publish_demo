@@ -1,0 +1,98 @@
+apply plugin: 'com.jfrog.bintray'
+
+version = libraryVersion
+
+if (project.hasProperty("android")) { // Android libraries
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from android.sourceSets.main.java.srcDirs
+    }
+
+    task javadoc(type: Javadoc) {
+        source = android.sourceSets.main.java.srcDirs
+        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    }
+} else { // Java libraries
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+}
+
+//上传到Maven仓库的task
+//uploadArchives {
+//    repositories {
+//        mavenDeployer {
+//            pom.version = libraryVersion
+//            pom.artifactId = artifact
+//            pom.groupId = publishedGroupId
+//            Properties properties = new Properties()
+//            //指定快照版本 maven仓库url， todo 请改为自己的maven服务器地址、账号密码
+//            snapshotRepository(url: 'https://bintray.com/chonrp27512/maven-snapshots/') {
+//                authentication(userName: properties.getProperty("bintray.user") , password:properties.getProperty("bintray.password") )
+//            }
+//            //指定正式版本 maven仓库url， todo 请改为自己的maven服务器地址、账号密码
+//            repository(url: 'https://bintray.com/chonrp27512/maven/') {
+//                authentication(userName: properties.getProperty("bintray.user") , password: properties.getProperty("bintray.password") )
+//            }
+//        }
+//    }
+//}
+
+// type显示指定任务类型或任务, 这里指定要执行Javadoc这个task,这个task在gradle中已经定义
+task androidJavadocs(type: Javadoc) {
+    // 设置源码所在的位置
+    source = android.sourceSets.main.java.sourceFiles
+}
+
+// 生成javadoc.jar
+task androidJavadocsJar(type: Jar) {
+    // 指定文档名称
+    classifier = 'androidJavaDoc'
+    from androidJavadocs.destinationDir
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+// 打包main目录下代码和资源的task，生成sources.jar
+task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.sourceFiles
+}
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
+// Bintray
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+bintray {
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.apikey")
+
+    configurations = ['archives']
+    pkg {
+        repo = bintrayRepo
+        name = bintrayName
+        desc = libraryDescription
+        websiteUrl = siteUrl
+        vcsUrl = gitUrl
+        licenses = allLicenses
+        publish = true
+        publicDownloadNumbers = true
+        version {
+            desc = libraryDescription
+            gpg {
+                sign = true //Determines whether to GPG sign the files. The default is false
+                passphrase = properties.getProperty("bintray.gpg.password")
+                //Optional. The passphrase for GPG signing'
+            }
+        }
+    }
+}
